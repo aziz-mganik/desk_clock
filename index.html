@@ -5,16 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Desk Focus Companion</title>
     <style>
-        /* 1. CSS RESET & VARIABLES */
-        /* Kita set margin 0 agar aplikasi full screen tanpa sela putih */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        /* --- 1. CSS RESET & UTAMA --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --bg-color: #121212; /* Warna gelap agar mata tidak sakit (Dark Mode) */
+            --bg-color: #121212;
             --text-color: #e0e0e0;
             --accent-color: #bb86fc;
         }
@@ -22,39 +17,39 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: 'Courier New', Courier, monospace; /* Font gaya retro/digital */
-            height: 100vh; /* Full tinggi layar */
-            width: 100vw; /* Full lebar layar */
-            overflow: hidden; /* Mencegah scroll */
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
             display: flex;
-            flex-direction: row; /* Menyusun elemen menyamping (Landscape) */
+            flex-direction: row;
         }
 
-        /* 2. LAYOUT MANAGEMENT */
-        /* Bagian Jam (2/3 layar) */
+        /* --- 2. LAYOUT --- */
         .clock-container {
-            flex: 2; /* Mengambil 2 bagian porsi */
+            flex: 2;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            border-right: 2px solid #333; /* Garis pemisah tipis */
+            border-right: 2px solid #333;
+            position: relative; /* Agar layer dimming bisa di atasnya */
+            z-index: 1;
         }
 
-        /* Bagian YouTube (1/3 layar) */
         .media-container {
-            flex: 1; /* Mengambil 1 bagian porsi */
+            flex: 1;
             background: black;
             display: flex;
             justify-content: center;
             align-items: center;
+            position: relative;
+            z-index: 1;
         }
 
-        /* 3. COMPONENT STYLING */
         #time-display {
-            font-size: 15vw; /* Ukuran font responsif mengikuti lebar layar */
+            font-size: 15vw;
             font-weight: bold;
-            color: var(--text-color);
             text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
         }
 
@@ -64,49 +59,93 @@
             margin-top: -10px;
         }
 
-        /* Iframe YouTube agar responsif memenuhi kotaknya */
-        iframe {
-            width: 100%;
-            height: 100%;
+        iframe { width: 100%; height: 100%; border: none; }
+
+        /* --- 3. LAYAR PEMBUKA (START SCREEN) --- */
+        /* Ini diperlukan untuk memancing "User Gesture" agar bisa fullscreen */
+        #start-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0,0,0,0.95);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: opacity 0.5s ease;
+        }
+        
+        #start-btn {
+            padding: 15px 30px;
+            font-size: 24px;
+            background: var(--accent-color);
+            color: #000;
             border: none;
+            border-radius: 5px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            cursor: pointer;
+            animation: pulse 2s infinite;
         }
 
-        /* 4. MOBILE HANDLING */
-        /* Pesan jika user membuka dalam mode portrait (berdiri) */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* --- 4. SOFTWARE DIMMING (Brightness Palsu) --- */
+        /* Layer hitam di atas segalanya untuk simulasi brightness 50% */
+        #dimmer-layer {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: black;
+            opacity: 0; /* Awalnya transparan */
+            pointer-events: none; /* PENTING: Agar kita tetap bisa klik play/pause di bawahnya */
+            z-index: 500; /* Di atas konten, tapi di bawah start screen */
+            transition: opacity 1s ease;
+        }
+
+        /* --- 5. PERINGATAN ROTASI --- */
         #rotate-warning {
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             background: var(--bg-color);
-            z-index: 999;
+            z-index: 10000; /* Paling atas */
             justify-content: center;
             align-items: center;
             text-align: center;
-            padding: 20px;
         }
 
-        /* Media Query: Jika layar lebih tinggi daripada lebarnya (Portrait) */
         @media (orientation: portrait) {
-            #rotate-warning {
-                display: flex; /* Tampilkan peringatan */
-            }
+            #rotate-warning { display: flex; }
+            #start-overlay { display: none; } /* Sembunyikan tombol start jika portrait */
         }
     </style>
 </head>
 <body>
 
+    <div id="dimmer-layer"></div>
+
     <div id="rotate-warning">
-        <h1>Harap putar ponsel Anda ke Landscape 🔄</h1>
+        <h1>Harap putar ke Landscape 🔄</h1>
+    </div>
+
+    <div id="start-overlay" onclick="startApp()">
+        <button id="start-btn">▶ MULAI FOKUS</button>
+        <p style="margin-top: 20px; color: #888;">Klik untuk Fullscreen & Auto-Dim</p>
     </div>
 
     <section class="clock-container">
         <div id="time-display">00:00</div>
-        <div id="date-display">Senin, 1 Januari</div>
+        <div id="date-display">...</div>
     </section>
 
     <section class="media-container">
         <iframe 
-            src="https://www.youtube-nocookie.com/embed/MOl4s-VIuLQ?controls=1&autoplay=1&mute=0" 
+            src="https://www.youtube-nocookie.com/embed/MOl4s-VIuLQ?controls=1&autoplay=1&mute=0&loop=1" 
             title="Lo-Fi Player"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             allowfullscreen>
@@ -114,44 +153,58 @@
     </section>
 
     <script>
-        // --- JAVASCRIPT LOGIC ---
-
+        // --- 1. LOGIKA JAM ---
         function updateClock() {
             const now = new Date();
-            
-            // Mengambil jam dan menit
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
-            
-            // Mengupdate teks HTML
             document.getElementById('time-display').textContent = `${hours}:${minutes}`;
-
-            // Opsi format tanggal lokal Indonesia
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             document.getElementById('date-display').textContent = now.toLocaleDateString('id-ID', options);
         }
-
-        // Jalankan fungsi sekali di awal agar tidak menunggu 1 detik
+        setInterval(updateClock, 1000);
         updateClock();
 
-        // Jalankan fungsi setiap 1000 milidetik (1 detik)
-        setInterval(updateClock, 1000);
+        // --- 2. FUNGSI UTAMA (Start App) ---
+        function startApp() {
+            const overlay = document.getElementById('start-overlay');
+            const dimmer = document.getElementById('dimmer-layer');
+            const elem = document.documentElement; // Seluruh halaman
 
-        // --- WAKE LOCK (Mencegah Layar Mati) ---
-        // Fitur canggih browser modern untuk menjaga layar tetap nyala saat bekerja
+            // A. Request Fullscreen (Support untuk berbagai browser)
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE11 */
+                elem.msRequestFullscreen();
+            }
+
+            // B. Request Wake Lock (Agar layar tidak mati)
+            requestWakeLock();
+
+            // C. Efek UI
+            overlay.style.opacity = '0'; // Hilangkan tombol start
+            setTimeout(() => {
+                overlay.style.display = 'none'; // Hapus dari layar setelah animasi
+                
+                // Aktifkan Dimming (Brightness 50%)
+                // Kita set opacity layer hitam menjadi 0.5 (50%)
+                dimmer.style.opacity = '0.5'; 
+            }, 500);
+        }
+
+        // --- 3. WAKE LOCK ---
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
-                    const wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Wake Lock aktif: Layar tidak akan mati.');
+                    await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock aktif.');
                 }
             } catch (err) {
-                console.log('Wake Lock gagal:', err.name, err.message);
+                console.log('Wake Lock error:', err);
             }
         }
-        
-        // Panggil saat halaman diklik pertama kali (browser butuh interaksi user untuk fitur ini)
-        document.addEventListener('click', requestWakeLock);
     </script>
 </body>
 </html>
