@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Desk Focus Companion</title>
+    <style>
+        /* 1. CSS RESET & VARIABLES */
+        /* Kita set margin 0 agar aplikasi full screen tanpa sela putih */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-color: #121212; /* Warna gelap agar mata tidak sakit (Dark Mode) */
+            --text-color: #e0e0e0;
+            --accent-color: #bb86fc;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace; /* Font gaya retro/digital */
+            height: 100vh; /* Full tinggi layar */
+            width: 100vw; /* Full lebar layar */
+            overflow: hidden; /* Mencegah scroll */
+            display: flex;
+            flex-direction: row; /* Menyusun elemen menyamping (Landscape) */
+        }
+
+        /* 2. LAYOUT MANAGEMENT */
+        /* Bagian Jam (2/3 layar) */
+        .clock-container {
+            flex: 2; /* Mengambil 2 bagian porsi */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-right: 2px solid #333; /* Garis pemisah tipis */
+        }
+
+        /* Bagian YouTube (1/3 layar) */
+        .media-container {
+            flex: 1; /* Mengambil 1 bagian porsi */
+            background: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 3. COMPONENT STYLING */
+        #time-display {
+            font-size: 15vw; /* Ukuran font responsif mengikuti lebar layar */
+            font-weight: bold;
+            color: var(--text-color);
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        #date-display {
+            font-size: 2vw;
+            color: var(--accent-color);
+            margin-top: -10px;
+        }
+
+        /* Iframe YouTube agar responsif memenuhi kotaknya */
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* 4. MOBILE HANDLING */
+        /* Pesan jika user membuka dalam mode portrait (berdiri) */
+        #rotate-warning {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-color);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Media Query: Jika layar lebih tinggi daripada lebarnya (Portrait) */
+        @media (orientation: portrait) {
+            #rotate-warning {
+                display: flex; /* Tampilkan peringatan */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="rotate-warning">
+        <h1>Harap putar ponsel Anda ke Landscape 🔄</h1>
+    </div>
+
+    <section class="clock-container">
+        <div id="time-display">00:00</div>
+        <div id="date-display">Senin, 1 Januari</div>
+    </section>
+
+    <section class="media-container">
+        <iframe 
+            src="https://www.youtube-nocookie.com/embed/MOl4s-VIuLQ?controls=1&autoplay=1&mute=0" 
+            title="Lo-Fi Player"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowfullscreen>
+        </iframe>
+    </section>
+
+    <script>
+        // --- JAVASCRIPT LOGIC ---
+
+        function updateClock() {
+            const now = new Date();
+            
+            // Mengambil jam dan menit
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            
+            // Mengupdate teks HTML
+            document.getElementById('time-display').textContent = `${hours}:${minutes}`;
+
+            // Opsi format tanggal lokal Indonesia
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('date-display').textContent = now.toLocaleDateString('id-ID', options);
+        }
+
+        // Jalankan fungsi sekali di awal agar tidak menunggu 1 detik
+        updateClock();
+
+        // Jalankan fungsi setiap 1000 milidetik (1 detik)
+        setInterval(updateClock, 1000);
+
+        // --- WAKE LOCK (Mencegah Layar Mati) ---
+        // Fitur canggih browser modern untuk menjaga layar tetap nyala saat bekerja
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    const wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock aktif: Layar tidak akan mati.');
+                }
+            } catch (err) {
+                console.log('Wake Lock gagal:', err.name, err.message);
+            }
+        }
+        
+        // Panggil saat halaman diklik pertama kali (browser butuh interaksi user untuk fitur ini)
+        document.addEventListener('click', requestWakeLock);
+    </script>
+</body>
+</html>
